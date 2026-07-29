@@ -29,6 +29,7 @@ export interface IPage {
     canEdit: boolean;
     hasRestriction: boolean;
   };
+  labels?: { id: string; name: string }[];
 }
 
 export interface IContributor {

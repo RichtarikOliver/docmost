@@ -54,6 +54,7 @@ import {
 import { markdownToHtml } from '@docmost/editor-ext';
 import { WatcherService } from '../../watcher/watcher.service';
 import { sql } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { TransclusionService } from '../transclusion/transclusion.service';
 
 @Injectable()
@@ -308,6 +309,17 @@ export class PageService {
         'deletedAt',
       ])
       .select((eb) => this.pageRepo.withHasChildren(eb))
+      .select((eb) => [
+        jsonArrayFrom(
+          eb
+            .selectFrom('labels')
+            .innerJoin('pageLabels as pl', 'pl.labelId', 'labels.id')
+            .select(['labels.id', 'labels.name'])
+            .whereRef('pl.pageId', '=', 'pages.id')
+            .where('labels.type', '=', 'page')
+            .orderBy('pl.id', 'asc'),
+        ).as('labels'),
+      ])
       .where('deletedAt', 'is', null)
       .where('spaceId', '=', spaceId);
 

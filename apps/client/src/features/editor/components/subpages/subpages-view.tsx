@@ -29,6 +29,7 @@ import { sortPositionKeys } from "@/features/page/tree/utils/utils";
 import { useSharedPageSubpages } from "@/features/share/hooks/use-shared-page-subpages";
 import { useSearchSuggestionsQuery } from "@/features/search/queries/search-query";
 import { useDebouncedValue } from "@mantine/hooks";
+import { LabelChip } from "@/features/label/components/label-chip";
 
 export default function SubpagesView(props: NodeViewProps) {
   const { editor, node, updateAttributes } = props;
@@ -42,7 +43,6 @@ export default function SubpagesView(props: NodeViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery] = useDebouncedValue(searchQuery, 300);
 
-  // Derive picker visibility from node attribute so that external resets (bubble menu) work
   const showPicker = !targetPageId && editor.isEditable && !shareId;
 
   const { data: searchData, isLoading: searchLoading } =
@@ -66,6 +66,7 @@ export default function SubpagesView(props: NodeViewProps) {
         title: node.name,
         icon: node.icon,
         position: node.position,
+        labels: [] as { id: string; name: string }[],
       }));
     }
     if (!data?.pages) return [];
@@ -90,7 +91,6 @@ export default function SubpagesView(props: NodeViewProps) {
     setSearchQuery("");
   };
 
-  // Page picker — shown when editor is editable and no target page is selected
   if (showPicker) {
     return (
       <NodeViewWrapper data-drag-handle>
@@ -159,7 +159,6 @@ export default function SubpagesView(props: NodeViewProps) {
     );
   }
 
-  // Read-only view when no target page was chosen
   if (!targetPageId && !editor.isEditable) {
     return (
       <NodeViewWrapper data-drag-handle>
@@ -211,40 +210,48 @@ export default function SubpagesView(props: NodeViewProps) {
         ) : (
           <Stack gap={5}>
             {subpages.map((page) => (
-              <Anchor
-                key={page.id}
-                component={Link}
-                fw={500}
-                to={
-                  shareId
-                    ? buildSharedPageUrl({
-                        shareId,
-                        pageSlugId: page.slugId,
-                        pageTitle: page.title,
-                      })
-                    : buildPageUrl(spaceSlug, page.slugId, page.title)
-                }
-                underline="never"
-                className={styles.pageMentionLink}
-                draggable={false}
-              >
+              <Group key={page.id} gap={6} wrap="nowrap" align="center">
                 {page?.icon ? (
-                  <span style={{ marginRight: "4px" }}>{page.icon}</span>
+                  <span style={{ flexShrink: 0, fontSize: "1em" }}>
+                    {page.icon}
+                  </span>
                 ) : (
                   <ActionIcon
                     variant="transparent"
                     color="gray"
                     component="span"
                     size={18}
-                    style={{ verticalAlign: "text-bottom" }}
+                    style={{ flexShrink: 0 }}
                   >
                     <IconFileDescription size={18} />
                   </ActionIcon>
                 )}
-                <span className={styles.pageMentionText}>
+
+                <Anchor
+                  component={Link}
+                  fw={500}
+                  to={
+                    shareId
+                      ? buildSharedPageUrl({
+                          shareId,
+                          pageSlugId: page.slugId,
+                          pageTitle: page.title,
+                        })
+                      : buildPageUrl(spaceSlug, page.slugId, page.title)
+                  }
+                  underline="hover"
+                  draggable={false}
+                  style={{ flexShrink: 0 }}
+                >
                   {page?.title || t("untitled")}
-                </span>
-              </Anchor>
+                </Anchor>
+
+                {(page as any).labels?.map(
+                  (label: { id: string; name: string }) => (
+                    <LabelChip key={label.id} label={label} />
+                  ),
+                )}
+              </Group>
             ))}
           </Stack>
         )}
