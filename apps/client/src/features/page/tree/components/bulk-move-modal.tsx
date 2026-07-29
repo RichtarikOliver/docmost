@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { notifications } from "@mantine/notifications";
 import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import { selectedPagesAtom } from "@/features/page/tree/atoms/selected-pages-atom";
+import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom";
 import { DestinationPicker } from "@/components/ui/destination-picker/destination-picker";
 import { DestinationSelection } from "@/components/ui/destination-picker/destination-picker.types";
 import { movePage } from "@/features/page/services/page-service";
@@ -23,6 +24,7 @@ export function BulkMoveModal({
 }: BulkMoveModalProps) {
   const { t } = useTranslation();
   const [selectedPages, setSelectedPages] = useAtom(selectedPagesAtom);
+  const [, setTreeData] = useAtom(treeDataAtom);
   const [selection, setSelection] = useState<DestinationSelection | null>(null);
   const [isMoving, setIsMoving] = useState(false);
 
@@ -44,9 +46,18 @@ export function BulkMoveModal({
         movedCount++;
       }
 
+      // Drop affected spaces from the atom so the tree rebuilds completely
+      // from fresh query data instead of merging stale positions.
+      const spacesToClear = new Set<string>();
+      if (initialSpaceId) spacesToClear.add(initialSpaceId);
+      spacesToClear.add(selection.spaceId);
+      setTreeData((prev) =>
+        prev.filter((n) => !spacesToClear.has(n?.spaceId)),
+      );
+
       queryClient.removeQueries({
         predicate: (item) =>
-          ["pages", "sidebar-pages", "root-sidebar-pages"].includes(
+          ["sidebar-pages", "root-sidebar-pages"].includes(
             item.queryKey[0] as string,
           ),
       });
