@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
@@ -10,6 +11,7 @@ import {
   IconDotsVertical,
   IconFileExport,
   IconLink,
+  IconSortAscendingLetters,
   IconStar,
   IconStarFilled,
   IconTrash,
@@ -21,10 +23,11 @@ import CopyPageModal from "@/features/page/components/copy-page-modal.tsx";
 import { useDeletePageModal } from "@/features/page/hooks/use-delete-page-modal.tsx";
 import { buildPageUrl } from "@/features/page/page.utils.ts";
 import { getPageTitle } from "@/features/page/page.utils";
-import { duplicatePage } from "@/features/page/services/page-service.ts";
+import { duplicatePage, movePage } from "@/features/page/services/page-service.ts";
 import { useClipboard } from "@/hooks/use-clipboard";
 import { getAppUrl } from "@/lib/config.ts";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
+import { generateJitteredKeyBetween } from "fractional-indexing-jittered";
 import {
   useFavoriteIds,
   useAddFavoriteMutation,
@@ -34,6 +37,7 @@ import {
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { treeModel } from "@/features/page/tree/model/tree-model";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
+import { fetchAllAncestorChildren } from "@/features/page/queries/page-query.ts";
 import type { SpaceTreeNode } from "@/features/page/tree/types.ts";
 import classes from "@/features/page/tree/styles/tree.module.css";
 
@@ -50,6 +54,7 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
   const { handleDelete } = useTreeMutation(node.spaceId);
   const [data, setData] = useAtom(treeDataAtom);
   const emit = useQueryEmit();
+  const [isSorting, setIsSorting] = useState(false);
   const [exportOpened, { open: openExportModal, close: closeExportModal }] =
     useDisclosure(false);
   const [
@@ -117,6 +122,65 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
         message: err?.response?.data?.message || "An error occurred",
         color: "red",
       });
+    }
+  };
+
+  const handleSortSubpages = async () => {
+    if (isSorting) return;
+    setIsSorting(true);
+    try {
+      // Get children from atom, fetch from backend if not yet loaded
+      let children = (treeModel.find(data, node.id) as SpaceTreeNode | null)?.children as SpaceTreeNode[] | undefined;
+      if (!children || children.length === 0) {
+        children = (await fetchAllAncestorChildren({
+          pageId: node.id,
+          spaceId: node.spaceId,
+        })) as SpaceTreeNode[];
+      }
+      if (!children || children.length < 2) return;
+
+      const sorted = [...children].sort((a, b) =>
+        (a.name ?? "").localeCompare(b.name ?? "", undefined, { sensitivity: "base" }),
+      );
+
+      let prevPos: string | null = null;
+      const newPositions: { id: string; position: string }[] = [];
+      for (const child of sorted) {
+        const position = generateJitteredKeyBetween(prevPos, null);
+        newPositions.push({ id: child.id, position });
+        prevPos = position;
+      }
+
+      await Promise.all(
+        newPositions.map(({ id, position }) =>
+          movePage({ pageId: id, parentPageId: node.id, position }),
+        ),
+      );
+
+      // Update atom: replace children of this node with sorted+repositioned list
+      setData((prev) => {
+        const replaceChildren = (nodes: SpaceTreeNode[]): SpaceTreeNode[] =>
+          nodes.map((n) => {
+            if (n.id === node.id) {
+              const updatedChildren = sorted.map((child, i) => ({
+                ...child,
+                position: newPositions[i].position,
+              }));
+              return { ...n, children: updatedChildren };
+            }
+            if (n.children?.length) {
+              return { ...n, children: replaceChildren(n.children as SpaceTreeNode[]) };
+            }
+            return n;
+          });
+        return replaceChildren(prev);
+      });
+
+      notifications.show({ message: t("Subpages sorted alphabetically") });
+    } catch {
+      notifications.show({ message: t("Failed to sort subpages"), color: "red" });
+    } finally {
+      setIsSorting(false);
     }
   };
 
@@ -205,6 +269,20 @@ export function NodeMenu({ node, canEdit }: NodeMenuProps) {
               >
                 {t("Move")}
               </Menu.Item>
+
+              {node.hasChildren && (
+                <Menu.Item
+                  leftSection={<IconSortAscendingLetters size={16} />}
+                  disabled={isSorting}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSortSubpages();
+                  }}
+                >
+                  {isSorting ? t("Sorting…") : t("Sort subpages A→Z")}
+                </Menu.Item>
+              )}
 
               <Menu.Item
                 leftSection={<IconCopy size={16} />}
