@@ -15,7 +15,8 @@ import {
   IconSearch,
   IconEdit,
 } from "@tabler/icons-react";
-import { useGetSidebarPagesQuery } from "@/features/page/queries/page-query";
+import { useQuery } from "@tanstack/react-query";
+import { getAllSidebarPages } from "@/features/page/services/page-service";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import classes from "./subpages.module.css";
@@ -54,9 +55,12 @@ export default function SubpagesView(props: NodeViewProps) {
 
   const sharedSubpages = useSharedPageSubpages(currentPageId);
 
-  const { data, isLoading, error } = useGetSidebarPagesQuery(
-    shareId || !targetPageId ? null : { pageId: targetPageId },
-  );
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["all-subpages", targetPageId],
+    queryFn: () => getAllSidebarPages({ pageId: targetPageId }),
+    enabled: !shareId && !!targetPageId,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const subpages = useMemo(() => {
     if (shareId && sharedSubpages) {
