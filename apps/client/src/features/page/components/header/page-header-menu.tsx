@@ -7,6 +7,7 @@ import {
   IconEyeOff,
   IconFileExport,
   IconHistory,
+  IconInfoCircle,
   IconLink,
   IconList,
   IconMarkdown,
@@ -66,6 +67,7 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
   const { t } = useTranslation();
   const commentsTriggerProps = useAsideTriggerProps("comments");
   const tocTriggerProps = useAsideTriggerProps("toc");
+  const detailsTriggerProps = useAsideTriggerProps("details");
   const { pageSlug } = useParams();
   const { data: page } = usePageQuery({
     pageId: extractPageSlugId(pageSlug),
@@ -125,6 +127,19 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
             {...tocTriggerProps}
           >
             <IconList size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
+
+      {!page?.isBase && (
+        <Tooltip label={t("Page details")} openDelay={250} withArrow>
+          <ActionIcon
+            variant="subtle"
+            color="dark"
+            aria-label={t("Page details")}
+            {...detailsTriggerProps}
+          >
+            <IconInfoCircle size={20} stroke={2} />
           </ActionIcon>
         </Tooltip>
       )}
