@@ -3,7 +3,7 @@ import { posToDOMRect, findParentNode } from "@tiptap/react";
 import { Node as PMNode } from "@tiptap/pm/model";
 import React, { useCallback, type JSX } from "react";
 import { ActionIcon, Tooltip } from "@mantine/core";
-import { IconTrash } from "@tabler/icons-react";
+import { IconTrash, IconEdit } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tiptap/core";
 import { isEditorReady } from "@docmost/editor-ext";
@@ -57,6 +57,19 @@ export const SubpagesMenu = React.memo(
         .run();
     }, [editor]);
 
+    const resetTargetPage = useCallback(() => {
+      const { selection } = editor.state;
+      const predicate = (node: PMNode) => node.type.name === "subpages";
+      const parent = findParentNode(predicate)(selection);
+      if (parent) {
+        editor
+          .chain()
+          .focus()
+          .updateAttributes("subpages", { targetPageId: null, targetPageTitle: null })
+          .run();
+      }
+    }, [editor]);
+
     return (
       <BaseBubbleMenu
         editor={editor}
@@ -64,6 +77,16 @@ export const SubpagesMenu = React.memo(
         updateDelay={0}
         shouldShow={shouldShow}
       >
+        <Tooltip position="top" label={t("Change page")}>
+          <ActionIcon
+            onClick={resetTargetPage}
+            variant="default"
+            size="lg"
+            aria-label={t("Change page")}
+          >
+            <IconEdit size={18} />
+          </ActionIcon>
+        </Tooltip>
         <Tooltip position="top" label={t("Delete")}>
           <ActionIcon
             onClick={deleteNode}

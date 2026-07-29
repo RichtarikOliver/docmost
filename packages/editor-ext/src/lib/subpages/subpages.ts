@@ -6,7 +6,10 @@ export interface SubpagesOptions {
   view: any;
 }
 
-export interface SubpagesAttributes {}
+export interface SubpagesAttributes {
+  targetPageId?: string | null;
+  targetPageTitle?: string | null;
+}
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -30,6 +33,27 @@ export const Subpages = Node.create<SubpagesOptions>({
   atom: true,
   draggable: true,
   isolating: true,
+
+  addAttributes() {
+    return {
+      targetPageId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-target-page-id"),
+        renderHTML: (attributes) => {
+          if (!attributes.targetPageId) return {};
+          return { "data-target-page-id": attributes.targetPageId };
+        },
+      },
+      targetPageTitle: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-target-page-title"),
+        renderHTML: (attributes) => {
+          if (!attributes.targetPageTitle) return {};
+          return { "data-target-page-title": attributes.targetPageTitle };
+        },
+      },
+    };
+  },
 
   parseHTML() {
     return [
