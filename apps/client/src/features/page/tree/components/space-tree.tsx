@@ -11,6 +11,7 @@ import {
 import classes from "@/features/page/tree/styles/tree.module.css";
 import { treeDataAtom } from "@/features/page/tree/atoms/tree-data-atom.ts";
 import { openTreeNodesAtom } from "@/features/page/tree/atoms/open-tree-nodes-atom.ts";
+import { selectedPagesAtom } from "@/features/page/tree/atoms/selected-pages-atom";
 import { useTreeMutation } from "@/features/page/tree/hooks/use-tree-mutation.ts";
 import {
   buildTree,
@@ -43,6 +44,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
     isFetching,
   } = useGetRootSidebarPagesQuery({ spaceId });
   const [openTreeNodes, setOpenTreeNodes] = useAtom(openTreeNodesAtom);
+  const [, setSelectedPages] = useAtom(selectedPagesAtom);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const spaceIdRef = useRef(spaceId);
   spaceIdRef.current = spaceId;
@@ -52,6 +54,7 @@ export default function SpaceTree({ spaceId, readOnly }: SpaceTreeProps) {
 
   useEffect(() => {
     setIsDataLoaded(false);
+    setSelectedPages(new Set());
   }, [spaceId]);
 
   useEffect(() => {

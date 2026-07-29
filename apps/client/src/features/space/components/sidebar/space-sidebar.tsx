@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Badge,
   Group,
   Menu,
   Text,
@@ -12,6 +13,7 @@ import {
   IconEye,
   IconEyeOff,
   IconFileExport,
+  IconFolderSymlink,
   IconHome,
   IconPlus,
   IconSearch,
@@ -20,6 +22,7 @@ import {
   IconStarFilled,
   IconTemplate,
   IconTrash,
+  IconX,
 } from "@tabler/icons-react";
 import {
   useSpaceWatchStatusQuery,
@@ -59,14 +62,19 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { Feature } from "@/ee/features";
 import { ErrorBoundary } from "react-error-boundary";
+import { selectedPagesAtom } from "@/features/page/tree/atoms/selected-pages-atom";
+import { BulkMoveModal } from "@/features/page/tree/components/bulk-move-modal";
 
 export function SpaceSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const [opened, { open: openSettings, close: closeSettings }] =
     useDisclosure(false);
+  const [bulkMoveOpened, { open: openBulkMove, close: closeBulkMove }] =
+    useDisclosure(false);
   const [mobileSidebarOpened] = useAtom(mobileSidebarAtom);
   const toggleMobileSidebar = useToggleSidebar(mobileSidebarAtom);
+  const [selectedPages, setSelectedPages] = useAtom(selectedPagesAtom);
 
   const { spaceSlug } = useParams();
   const { data: space } = useGetSpaceBySlugQuery(spaceSlug);
@@ -225,12 +233,43 @@ export function SpaceSidebar() {
             />
           </div>
         </div>
+
+        {selectedPages.size > 0 && (
+          <div style={{ padding: "8px 12px", borderTop: "1px solid var(--mantine-color-default-border)" }}>
+            <Group justify="space-between" wrap="nowrap">
+              <Group gap={6} wrap="nowrap">
+                <Badge size="sm" variant="filled" circle>
+                  {selectedPages.size}
+                </Badge>
+                <Text size="xs" c="dimmed">{t("selected")}</Text>
+              </Group>
+              <Group gap={4} wrap="nowrap">
+                <Tooltip label={t("Move selected")} withArrow position="top">
+                  <ActionIcon size="sm" variant="subtle" onClick={openBulkMove}>
+                    <IconFolderSymlink size={16} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label={t("Clear selection")} withArrow position="top">
+                  <ActionIcon size="sm" variant="subtle" color="gray" onClick={() => setSelectedPages(new Set())}>
+                    <IconX size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+            </Group>
+          </div>
+        )}
       </div>
 
       <SpaceSettingsModal
         opened={opened}
         onClose={closeSettings}
         spaceId={space?.slug}
+      />
+
+      <BulkMoveModal
+        opened={bulkMoveOpened}
+        onClose={closeBulkMove}
+        initialSpaceId={space.id}
       />
     </>
   );

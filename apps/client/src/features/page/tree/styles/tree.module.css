@@ -188,3 +188,25 @@
 .dropLine[data-edge="bottom"] {
     bottom: -1px;
 }
+
+.selectCheckbox {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (hover: hover) {
+    .node:hover .selectCheckbox {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+.node:focus-within .selectCheckbox {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.node[data-selected="true"] .selectCheckbox {
+    opacity: 1;
+    pointer-events: auto;
+}

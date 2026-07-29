@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAtom } from "jotai";
 import { useTranslation } from "react-i18next";
-import { ActionIcon, rem } from "@mantine/core";
+import { ActionIcon, Checkbox, rem } from "@mantine/core";
 import {
   IconChevronDown,
   IconChevronRight,
@@ -11,6 +11,7 @@ import {
   IconPointFilled,
   IconTable,
 } from "@tabler/icons-react";
+import { selectedPagesAtom } from "@/features/page/tree/atoms/selected-pages-atom";
 
 import EmojiPicker from "@/components/ui/emoji-picker.tsx";
 import { queryClient } from "@/main.tsx";
@@ -59,6 +60,22 @@ export function SpaceTreeRow({
 
   const canEdit = !readOnly && node.canEdit !== false;
   const pageUrl = buildPageUrl(spaceSlug, node.slugId, node.name);
+  const [selectedPages, setSelectedPages] = useAtom(selectedPagesAtom);
+  const isSelected = selectedPages.has(node.id);
+
+  const handleCheckboxChange = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedPages((prev) => {
+      const next = new Set(prev);
+      if (next.has(node.id)) {
+        next.delete(node.id);
+      } else {
+        next.add(node.id);
+      }
+      return next;
+    });
+  };
 
   const prefetchPage = () => {
     timerRef.current = setTimeout(async () => {
@@ -153,6 +170,29 @@ export function SpaceTreeRow({
       onMouseEnter={prefetchPage}
       onMouseLeave={cancelPagePrefetch}
     >
+      <span
+        onClick={handleCheckboxChange}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 20,
+          height: 20,
+          flexShrink: 0,
+          opacity: isSelected ? 1 : undefined,
+        }}
+        className={classes.selectCheckbox}
+      >
+        <Checkbox
+          size="xs"
+          checked={isSelected}
+          onChange={() => {}}
+          tabIndex={-1}
+          aria-label="Select page"
+          onClick={handleCheckboxChange}
+        />
+      </span>
+
       <PageArrow
         isOpen={isOpen}
         hasChildren={hasChildren}
